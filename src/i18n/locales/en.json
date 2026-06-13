@@ -126,11 +126,13 @@
         "jsonTitle": "Import JSON",
         "jsonDescription": "Import an exported resume config file (.json)",
         "pdfTitle": "Import PDF",
-        "pdfDescription": "Use Gemini into structured resume data",
+        "pdfDescription": "Use AI to extract structured resume data from PDF",
         "importing": "Importing, please wait...",
         "geminiConfigRequired": "Please configure Gemini API Key and Model ID in AI settings first",
         "pdfSuccess": "PDF imported successfully",
-        "pdfError": "PDF import failed. Please check PDF content or Gemini configuration"
+        "pdfError": "PDF import failed. Please check PDF content or AI configuration",
+        "selectProvider": "Select an AI provider for PDF parsing",
+        "providerConfigRequired": "Please configure {{name}} API Key and Model ID in AI settings first"
       },
       "notice": {
         "title": "Attention",
@@ -210,6 +212,13 @@
           "description": "Supports polish, grammar check, and PDF image resume import. Recommended model: gemini-flash-latest",
           "apiKey": "Gemini API Key",
           "modelId": "Gemini Model ID"
+        },
+        "custom": {
+          "title": "Custom API",
+          "description": "Connect to any OpenAI-compatible API endpoint",
+          "apiKey": "API Key",
+          "modelId": "Model ID",
+          "apiEndpoint": "API Endpoint"
         }
       }
     },
@@ -238,7 +247,6 @@
         "name": "Minimalist",
         "description": "Large amount of whitespace, clean and pure layout style"
       },
-
       "elegant": {
         "name": "Elegant",
         "description": "Centered title single-column design, with a touch of elegance"

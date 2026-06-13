@@ -1,11 +1,11 @@
-import { resolve, normalize, extname } from "node:path";
+import { resolve, normalize } from "node:path";
 import { existsSync, statSync, createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import serverEntry from "./dist/server/server.js";
 
 const clientDir = resolve(process.cwd(), "dist/client");
-const port = parseInt(process.env.PORT || "3001", 10);
-const host = process.env.HOST || "0.0.0.0";
+const port = 3001;
+const host = "127.0.0.1";
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -15,7 +15,6 @@ const MIME_TYPES = {
   ".jpeg": "image/jpeg",
   ".jpg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".map": "application/json; charset=utf-8",
   ".png": "image/png",
@@ -29,7 +28,7 @@ const MIME_TYPES = {
 };
 
 function getContentType(filePath) {
-  const ext = extname(filePath).toLowerCase();
+  const ext = require("path").extname(filePath).toLowerCase();
   return MIME_TYPES[ext] || "application/octet-stream";
 }
 

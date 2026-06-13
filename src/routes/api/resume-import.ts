@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { formatGeminiErrorMessage, getGeminiModelInstance } from "@/lib/server/gemini";
+import { AIModelType } from "@/config/ai";
+import { generateContent } from "@/lib/server/generate";
 
 const parseJsonPayload = (content: string) => {
   const text = content.trim();
@@ -45,12 +46,22 @@ export const Route = createFileRoute("/api/resume-import")({
       POST: async ({ request }) => {
         try {
           const body = await request.json();
-          const { apiKey, model, content, images, locale } = body as {
+          const {
+            provider,
+            apiKey,
+            modelId,
+            content,
+            images,
+            locale,
+            apiEndpoint,
+          } = body as {
+            provider?: AIModelType;
             apiKey: string;
-            model?: string;
+            modelId?: string;
             content?: string;
             images?: string[];
             locale?: string;
+            apiEndpoint?: string;
           };
 
           if (!apiKey || (!content && (!images || images.length === 0))) {
@@ -60,22 +71,33 @@ export const Route = createFileRoute("/api/resume-import")({
             );
           }
 
+          // Determine the provider (default: gemini for backward compatibility)
+          const selectedProvider: AIModelType = provider || "gemini";
+          
+          // Validate required fields per provider
+          const modelIdToUse = modelId || "";
+          if (!modelIdToUse) {
+            return Response.json(
+              { error: `Missing model ID for ${selectedProvider} provider` },
+              { status: 400 }
+            );
+          }
+
           const language = locale === "en" ? "English" : "Chinese";
-          const geminiModel = model || "gemini-flash-latest";
           const imageParts = Array.isArray(images)
             ? images.map((image) => {
                 const payload = extractBase64Payload(image);
                 return {
-                  inlineData: {
-                    mimeType: payload.mimeType,
-                    data: payload.data,
-                  },
+                  mimeType: payload.mimeType,
+                  base64Data: payload.data,
                 };
               })
             : [];
-          const modelInstance = getGeminiModelInstance({
+
+          const result = await generateContent({
+            provider: selectedProvider,
             apiKey,
-            model: geminiModel,
+            modelId: modelIdToUse,
             systemInstruction: `你是一个专业的简历结构化助手。根据用户提供的简历内容，提取信息并只输出一个合法 JSON 对象。
 
 输出约束：
@@ -127,23 +149,15 @@ JSON 结构：
   ],
   "skills": ["", ""]
 }`,
-            generationConfig: {
-              temperature: 0.2,
-              responseMimeType: "application/json",
-            },
+            userContent:
+              content ||
+              "请识别以下简历页面图片中的信息，并严格按 JSON 结构输出。",
+            images: imageParts,
+            temperature: 0.2,
+            apiEndpoint,
           });
 
-          const inputParts = [
-            {
-              text:
-                content ||
-                "请识别以下简历页面图片中的信息，并严格按 JSON 结构输出。",
-            },
-            ...imageParts,
-          ];
-
-          const result = await modelInstance.generateContent(inputParts);
-          const aiContent = result.response.text();
+          const aiContent = result.text;
 
           if (!aiContent || typeof aiContent !== "string") {
             return Response.json(
@@ -163,13 +177,10 @@ JSON 结构：
           return Response.json({ resume: parsedResume });
         } catch (error) {
           console.error("Error in resume import:", error);
-          const status =
-            typeof (error as any)?.status === "number"
-              ? (error as any).status
-              : 500;
+          const anyError = error as any;
           return Response.json(
-            { error: formatGeminiErrorMessage(error) },
-            { status }
+            { error: anyError?.message || "Import failed" },
+            { status: 500 }
           );
         }
       },

@@ -1,4 +1,4 @@
-export type AIModelType = "doubao" | "deepseek" | "openai" | "gemini";
+export type AIModelType = "doubao" | "deepseek" | "openai" | "gemini" | "custom";
 
 export interface AIValidationContext {
   doubaoApiKey?: string;
@@ -10,6 +10,9 @@ export interface AIValidationContext {
   openaiApiEndpoint?: string;
   geminiApiKey?: string;
   geminiModelId?: string;
+  customApiKey?: string;
+  customModelId?: string;
+  customApiEndpoint?: string;
 }
 
 export interface AIModelConfig {
@@ -57,5 +60,14 @@ export const AI_MODEL_CONFIGS: Record<AIModelType, AIModelConfig> = {
       "x-goog-api-key": apiKey,
     }),
     validate: (context: AIValidationContext) => !!(context.geminiApiKey && context.geminiModelId),
+  },
+  custom: {
+    url: (endpoint?: string) => `${(endpoint || "").trim().replace(/\/+$/, "")}/chat/completions`,
+    requiresModelId: true,
+    headers: (apiKey: string) => ({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    }),
+    validate: (context: AIValidationContext) => !!(context.customApiKey && context.customModelId && context.customApiEndpoint),
   },
 };

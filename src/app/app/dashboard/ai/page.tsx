@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ExternalLink, Sparkles } from "lucide-react";
+import { Check, ExternalLink, Sparkles, Settings2 } from "lucide-react";
 import { useTranslations } from "@/i18n/compat/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,19 +14,27 @@ const AISettingsPage = () => {
     doubaoApiKey,
     doubaoModelId,
     deepseekApiKey,
+    deepseekModelId,
     openaiApiKey,
     openaiModelId,
     openaiApiEndpoint,
     geminiApiKey,
     geminiModelId,
+    customApiKey,
+    customModelId,
+    customApiEndpoint,
     setDoubaoApiKey,
     setDoubaoModelId,
     setDeepseekApiKey,
+    setDeepseekModelId,
     setOpenaiApiKey,
     setOpenaiModelId,
     setOpenaiApiEndpoint,
     setGeminiApiKey,
     setGeminiModelId,
+    setCustomApiKey,
+    setCustomModelId,
+    setCustomApiEndpoint,
     selectedModel,
     setSelectedModel,
   } = useAIConfigStore();
@@ -40,42 +48,35 @@ const AISettingsPage = () => {
 
   const handleApiKeyChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "doubao" | "deepseek" | "openai" | "gemini"
+    type: "doubao" | "deepseek" | "openai" | "gemini" | "custom"
   ) => {
     const newApiKey = e.target.value;
-    if (type === "doubao") {
-      setDoubaoApiKey(newApiKey);
-    } else if (type === "deepseek") {
-      setDeepseekApiKey(newApiKey);
-    } else if (type === "gemini") {
-      setGeminiApiKey(newApiKey);
-    } else {
-      setOpenaiApiKey(newApiKey);
-    }
+    if (type === "doubao") setDoubaoApiKey(newApiKey);
+    else if (type === "deepseek") setDeepseekApiKey(newApiKey);
+    else if (type === "gemini") setGeminiApiKey(newApiKey);
+    else if (type === "custom") setCustomApiKey(newApiKey);
+    else setOpenaiApiKey(newApiKey);
   };
 
   const handleModelIdChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "doubao" | "deepseek" | "openai" | "gemini"
+    type: "doubao" | "deepseek" | "openai" | "gemini" | "custom"
   ) => {
     const newModelId = e.target.value;
-    if (type === "doubao") {
-      setDoubaoModelId(newModelId);
-    } else if (type === "openai") {
-      setOpenaiModelId(newModelId);
-    } else if (type === "gemini") {
-      setGeminiModelId(newModelId);
-    }
+    if (type === "doubao") setDoubaoModelId(newModelId);
+    else if (type === "deepseek") setDeepseekModelId(newModelId);
+    else if (type === "openai") setOpenaiModelId(newModelId);
+    else if (type === "gemini") setGeminiModelId(newModelId);
+    else if (type === "custom") setCustomModelId(newModelId);
   };
 
   const handleApiEndpointChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "openai"
+    type: "openai" | "custom"
   ) => {
     const newApiEndpoint = e.target.value;
-    if (type === "openai") {
-      setOpenaiApiEndpoint(newApiEndpoint);
-    }
+    if (type === "openai") setOpenaiApiEndpoint(newApiEndpoint);
+    else if (type === "custom") setCustomApiEndpoint(newApiEndpoint);
   };
 
   const models = [
@@ -118,6 +119,16 @@ const AISettingsPage = () => {
       color: "text-amber-500",
       bgColor: "bg-amber-50 dark:bg-amber-950/50",
       isConfigured: !!(geminiApiKey && geminiModelId),
+    },
+    {
+      id: "custom",
+      name: t("dashboard.settings.ai.custom.title"),
+      description: t("dashboard.settings.ai.custom.description"),
+      icon: Settings2,
+      link: "",
+      color: "text-green-500",
+      bgColor: "bg-green-50 dark:bg-green-950/50",
+      isConfigured: !!(customApiKey && customModelId && customApiEndpoint),
     },
   ];
 
@@ -173,10 +184,10 @@ const AISettingsPage = () => {
                     aria-label={`Select ${model.name}`}
                     onClick={() => {
                       setSelectedModel(
-                        model.id as "doubao" | "deepseek" | "openai" | "gemini"
+                        model.id as "doubao" | "deepseek" | "openai" | "gemini" | "custom"
                       );
                       setCurrentModel(
-                        model.id as "doubao" | "deepseek" | "openai" | "gemini"
+                        model.id as "doubao" | "deepseek" | "openai" | "gemini" | "custom"
                       );
                     }}
                     className={cn(
@@ -218,15 +229,17 @@ const AISettingsPage = () => {
                         <Label className="text-base font-medium">
                           {t(`dashboard.settings.ai.${model.id}.apiKey`)}
                         </Label>
-                        <a
-                          href={model.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
-                        >
-                          {t("dashboard.settings.ai.getApiKey")}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
+                        {model.link && (
+                          <a
+                            href={model.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+                          >
+                            {t("dashboard.settings.ai.getApiKey")}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
                       </div>
                       <Input
                         value={
@@ -236,12 +249,14 @@ const AISettingsPage = () => {
                             ? openaiApiKey
                             : model.id === "gemini"
                             ? geminiApiKey
+                            : model.id === "custom"
+                            ? customApiKey
                             : deepseekApiKey
                         }
                         onChange={(e) =>
                           handleApiKeyChange(
                             e,
-                            model.id as "doubao" | "deepseek" | "openai" | "gemini"
+                            model.id as "doubao" | "deepseek" | "openai" | "gemini" | "custom"
                           )
                         }
                         type="password"
@@ -278,6 +293,27 @@ const AISettingsPage = () => {
                       </div>
                     )}
 
+                    {model.id === "deepseek" && (
+                      <div className="space-y-4">
+                        <Label className="text-base font-medium">
+                          {t("dashboard.settings.ai.deepseek.modelId")}
+                        </Label>
+                        <Input
+                          value={deepseekModelId}
+                          onChange={(e) => handleModelIdChange(e, "deepseek")}
+                          placeholder={t(
+                            "dashboard.settings.ai.deepseek.modelId"
+                          )}
+                          className={cn(
+                            "h-11",
+                            "bg-white dark:bg-gray-900",
+                            "border-gray-200 dark:border-gray-800",
+                            "focus:ring-2 focus:ring-primary/20"
+                          )}
+                        />
+                      </div>
+                    )}
+
                     {model.id === "openai" && (
                       <div className="space-y-4">
                         <Label className="text-base font-medium">
@@ -288,6 +324,22 @@ const AISettingsPage = () => {
                           onChange={(e) => handleModelIdChange(e, "openai")}
                           placeholder={t(
                             "dashboard.settings.ai.openai.modelId"
+                          )}
+                          className={cn(
+                            "h-11",
+                            "bg-white dark:bg-gray-900",
+                            "border-gray-200 dark:border-gray-800",
+                            "focus:ring-2 focus:ring-primary/20"
+                          )}
+                        />
+                        <Label className="text-base font-medium">
+                          {t("dashboard.settings.ai.openai.apiEndpoint")}
+                        </Label>
+                        <Input
+                          value={openaiApiEndpoint}
+                          onChange={(e) => handleApiEndpointChange(e, "openai")}
+                          placeholder={t(
+                            "dashboard.settings.ai.openai.apiEndpoint"
                           )}
                           className={cn(
                             "h-11",
@@ -318,17 +370,29 @@ const AISettingsPage = () => {
                       </div>
                     )}
 
-                    {model.id === "openai" && (
+                    {model.id === "custom" && (
                       <div className="space-y-4">
                         <Label className="text-base font-medium">
-                          {t("dashboard.settings.ai.openai.apiEndpoint")}
+                          {t("dashboard.settings.ai.custom.modelId")}
                         </Label>
                         <Input
-                          value={openaiApiEndpoint}
-                          onChange={(e) => handleApiEndpointChange(e, "openai")}
-                          placeholder={t(
-                            "dashboard.settings.ai.openai.apiEndpoint"
+                          value={customModelId}
+                          onChange={(e) => handleModelIdChange(e, "custom")}
+                          placeholder={t("dashboard.settings.ai.custom.modelId")}
+                          className={cn(
+                            "h-11",
+                            "bg-white dark:bg-gray-900",
+                            "border-gray-200 dark:border-gray-800",
+                            "focus:ring-2 focus:ring-primary/20"
                           )}
+                        />
+                        <Label className="text-base font-medium">
+                          {t("dashboard.settings.ai.custom.apiEndpoint")}
+                        </Label>
+                        <Input
+                          value={customApiEndpoint}
+                          onChange={(e) => handleApiEndpointChange(e, "custom")}
+                          placeholder={t("dashboard.settings.ai.custom.apiEndpoint")}
                           className={cn(
                             "h-11",
                             "bg-white dark:bg-gray-900",

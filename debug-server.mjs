@@ -1,68 +1,19 @@
-import { resolve, normalize, extname } from "node:path";
+import { resolve, normalize } from "node:path";
 import { existsSync, statSync, createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import serverEntry from "./dist/server/server.js";
 
 const clientDir = resolve(process.cwd(), "dist/client");
-const port = parseInt(process.env.PORT || "3001", 10);
-const host = process.env.HOST || "0.0.0.0";
+const port = 3000;
+const hostname = "127.0.0.1";
 
-const MIME_TYPES = {
-  ".css": "text/css; charset=utf-8",
-  ".gif": "image/gif",
-  ".html": "text/html; charset=utf-8",
-  ".ico": "image/x-icon",
-  ".jpeg": "image/jpeg",
-  ".jpg": "image/jpeg",
-  ".js": "text/javascript; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".map": "application/json; charset=utf-8",
-  ".png": "image/png",
-  ".svg": "image/svg+xml",
-  ".txt": "text/plain; charset=utf-8",
-  ".ttf": "font/ttf",
-  ".webp": "image/webp",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".xml": "application/xml; charset=utf-8"
-};
-
-function getContentType(filePath) {
-  const ext = extname(filePath).toLowerCase();
-  return MIME_TYPES[ext] || "application/octet-stream";
-}
-
-function resolveStaticFile(pathname) {
-  const decoded = decodeURIComponent(pathname);
-  const normalized = normalize(decoded).replace(/^[/\\]+/, "");
-  const absolutePath = resolve(clientDir, normalized);
-  if (!absolutePath.startsWith(clientDir)) return null;
-  if (!existsSync(absolutePath)) return null;
-  const stats = statSync(absolutePath);
-  if (!stats.isFile()) return null;
-  return absolutePath;
-}
-
-function tryServeStatic(req, res, url) {
-  if (!url.pathname || url.pathname.endsWith("/")) return false;
-  const filePath = resolveStaticFile(url.pathname);
-  if (!filePath) return false;
-
-  res.statusCode = 200;
-  res.setHeader("Content-Type", getContentType(filePath));
-  if (url.pathname.startsWith("/assets/")) {
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-  } else {
-    res.setHeader("Cache-Control", "public, max-age=3600");
-  }
-  if (req.method === "HEAD") {
-    res.end();
-    return true;
-  }
-  createReadStream(filePath).pipe(res);
-  return true;
-}
+console.log("Starting Magic Resume server...");
+console.log("cwd:", process.cwd());
+console.log("clientDir:", clientDir);
+console.log("exists:", existsSync(clientDir));
+console.log("port:", port);
+console.log("host:", hostname);
+console.log("serverEntry.fetch:", typeof serverEntry.fetch);
 
 function toHeaders(nodeHeaders) {
   const headers = new Headers();
@@ -98,8 +49,7 @@ const server = createServer(async (req, res) => {
     const protocol = (req.headers["x-forwarded-proto"] || "http").toString().split(",")[0].trim();
     const url = new URL(req.url || "/", `${protocol}://${hostHeader}`);
 
-    if (tryServeStatic(req, res, url)) return;
-
+    // Skip static serving - let SSR handle it
     const method = (req.method || "GET").toUpperCase();
     const hasBody = method !== "GET" && method !== "HEAD";
     const init = { method, headers: toHeaders(req.headers) };
@@ -134,6 +84,12 @@ const server = createServer(async (req, res) => {
     }
     res.end("Internal Server Error");
   }
-}).listen(port, host, () => {
-  console.log(`Magic Resume server running at http://${host}:${port}`);
+});
+
+server.on('error', (err) => {
+  console.error('Listen error:', err);
+});
+
+server.listen(port, hostname, () => {
+  console.log(`Magic Resume server running at http://${hostname}:${port}`);
 });

@@ -18,6 +18,7 @@ import { getConfig, getFileHandle } from "@/utils/fileSystem";
 import { useResumeStore } from "@/store/useResumeStore";
 import { useAIConfigStore } from "@/store/useAIConfigStore";
 import { DEFAULT_TEMPLATES } from "@/config";
+import { AI_MODEL_CONFIGS, AIModelType } from "@/config/ai";
 import { CreateResumeModal } from "./CreateResumeModal";
 import { ImportResumeDialog } from "./ImportResumeDialog";
 import { ResumeCardItem } from "./ResumeCardItem";
@@ -46,12 +47,24 @@ export const ResumeWorkbench = () => {
     const {
         geminiApiKey,
         geminiModelId,
+        doubaoApiKey,
+        doubaoModelId,
+        deepseekApiKey,
+        deepseekModelId,
+        openaiApiKey,
+        openaiModelId,
+        openaiApiEndpoint,
+        customApiKey,
+        customModelId,
+        customApiEndpoint,
+        selectedModel,
     } = useAIConfigStore();
     const router = useRouter();
     const [hasConfiguredFolder, setHasConfiguredFolder] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [selectedProvider, setSelectedProvider] = useState<AIModelType | null>(null);
     const jsonFileInputRef = useRef<HTMLInputElement>(null);
     const pdfFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -185,9 +198,38 @@ export const ResumeWorkbench = () => {
         return pageImages;
     };
 
+    const getProviderCredentials = (provider: AIModelType) => {
+        switch (provider) {
+            case "doubao":
+                return { apiKey: doubaoApiKey, modelId: doubaoModelId, apiEndpoint: undefined };
+            case "deepseek":
+                return { apiKey: deepseekApiKey, modelId: deepseekModelId, apiEndpoint: undefined };
+            case "openai":
+                return { apiKey: openaiApiKey, modelId: openaiModelId, apiEndpoint: openaiApiEndpoint };
+            case "gemini":
+                return { apiKey: geminiApiKey, modelId: geminiModelId, apiEndpoint: undefined };
+            case "custom":
+                return { apiKey: customApiKey, modelId: customModelId, apiEndpoint: customApiEndpoint };
+            default:
+                return { apiKey: geminiApiKey, modelId: geminiModelId, apiEndpoint: undefined };
+        }
+    };
+
     const importResumeFromPdf = async (file: File) => {
-        if (!geminiApiKey || !geminiModelId) {
-            toast.error(t("dashboard.resumes.importDialog.geminiConfigRequired"));
+        // Determine which provider to use
+        const providerToUse = selectedProvider || selectedModel;
+
+        const credentials = getProviderCredentials(providerToUse);
+        if (!credentials.apiKey || !credentials.modelId) {
+            const providerNames: Record<string, string> = {
+                gemini: "Gemini",
+                doubao: "豆包",
+                deepseek: "DeepSeek",
+                openai: "OpenAI",
+                custom: "自定义",
+            };
+            const name = providerNames[providerToUse] || providerToUse;
+            toast.error(t("dashboard.resumes.importDialog.providerConfigRequired", { name }));
             router.push("/app/dashboard/ai");
             return;
         }
@@ -203,9 +245,11 @@ export const ResumeWorkbench = () => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
+                provider: providerToUse,
                 images: pdfImages,
-                apiKey: geminiApiKey,
-                model: geminiModelId,
+                apiKey: credentials.apiKey,
+                modelId: credentials.modelId,
+                apiEndpoint: credentials.apiEndpoint,
                 locale,
             }),
         });
@@ -235,6 +279,10 @@ export const ResumeWorkbench = () => {
         setIsImportDialogOpen(false);
         toast.success(t("dashboard.resumes.importDialog.pdfSuccess"));
         router.push(`/app/workbench/${resumeId}`);
+    };
+
+    const handleProviderSelect = (provider: AIModelType) => {
+        setSelectedProvider(provider);
     };
 
     const handleJsonFileChange = async (
@@ -438,11 +486,17 @@ export const ResumeWorkbench = () => {
                 <ImportResumeDialog
                     open={isImportDialogOpen}
                     isImporting={isImporting}
-                    onOpenChange={setIsImportDialogOpen}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) {
+                            setSelectedProvider(null);
+                        }
+                        setIsImportDialogOpen(isOpen);
+                    }}
                     jsonFileInputRef={jsonFileInputRef}
                     pdfFileInputRef={pdfFileInputRef}
                     onJsonFileChange={handleJsonFileChange}
                     onPdfFileChange={handlePdfFileChange}
+                    onProviderSelect={handleProviderSelect}
                 />
             </motion.div>
         </ScrollArea>

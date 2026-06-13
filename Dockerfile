@@ -26,6 +26,8 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server.mjs ./server.mjs
 
+RUN chown -R nodeapp:nogroup /app
+
 USER nodeapp
 
 EXPOSE 3000

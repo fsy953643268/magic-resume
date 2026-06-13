@@ -63,6 +63,9 @@ export default function AIPolishDialog({
     openaiApiEndpoint,
     geminiApiKey,
     geminiModelId,
+    customApiKey,
+    customModelId,
+    customApiEndpoint,
     isConfigured
   } = useAIConfigStore();
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -131,7 +134,9 @@ export default function AIPolishDialog({
             ? openaiApiKey
             : selectedModel === "gemini"
               ? geminiApiKey
-              : deepseekApiKey;
+              : selectedModel === "custom"
+                ? customApiKey
+                : deepseekApiKey;
       const modelId =
         selectedModel === "doubao"
           ? doubaoModelId
@@ -139,7 +144,10 @@ export default function AIPolishDialog({
             ? openaiModelId
             : selectedModel === "gemini"
               ? geminiModelId
-              : deepseekModelId;
+              : selectedModel === "custom"
+                ? customModelId
+                : deepseekModelId;
+      const apiEndpoint = selectedModel === "custom" ? customApiEndpoint : selectedModel === "openai" ? openaiApiEndpoint : undefined;
 
       const response = await fetch("/api/polish", {
         method: "POST",
@@ -149,7 +157,7 @@ export default function AIPolishDialog({
         body: JSON.stringify({
           content: turndownService.turndown(content),
           apiKey,
-          apiEndpoint: selectedModel === "openai" ? openaiApiEndpoint : undefined,
+          apiEndpoint,
           model: config.requiresModelId ? modelId : config.defaultModel,
           modelType: selectedModel,
           customInstructions: customInstructions.trim() || undefined
